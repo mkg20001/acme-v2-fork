@@ -47,7 +47,7 @@ ACME.challengeTests = {
 
       let err = new Error(
         'Error: Failed DNS-01 Dry Run.\n' +
-        'dig +short ' + JSON.stringify(hostname) + ' does not return ' + JSON.stringify(auth.dnsAuthorization) + '\n' +
+        'dig +short ' + JSON.stringify(hostname) + ' TXT does not return ' + JSON.stringify(auth.dnsAuthorization) + '\n' +
         'See https://git.coolaj86.com/coolaj86/acme-v2.js/issues/4'
       )
       err.code = 'E_FAIL_DRY_CHALLENGE'
