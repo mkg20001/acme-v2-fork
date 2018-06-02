@@ -28,7 +28,7 @@ ACME.challengeTests = {
 
       err = new Error(
         'Error: Failed HTTP-01 Dry Run.\n' +
-        "curl '" + url + "' does not return '" + auth.keyAuthorization + "'\n" +
+        'curl ' + JSON.stringify(url) + ' does not return ' + JSON.stringify(auth.keyAuthorization) + '\n' +
         'See https://git.coolaj86.com/coolaj86/acme-v2.js/issues/4'
       )
       err.code = 'E_FAIL_DRY_CHALLENGE'
@@ -51,7 +51,7 @@ ACME.challengeTests = {
 
       err = new Error(
         'Error: Failed DNS-01 Dry Run.\n' +
-        "dig TXT '" + hostname + "' does not return '" + auth.dnsAuthorization + "'\n" +
+        'dig +short ' + JSON.stringify(hostname) + ' does not return ' + JSON.stringify(auth.dnsAuthorization) + '\n' +
         'See https://git.coolaj86.com/coolaj86/acme-v2.js/issues/4'
       )
       err.code = 'E_FAIL_DRY_CHALLENGE'
@@ -388,7 +388,6 @@ ACME._postChallenge = function (me, options, identifier, ch) {
         log('challenge accepted!')
         log(resp.headers)
         log(resp.body)
-        log()
 
         me._nonce = resp.toJSON().headers['replay-nonce']
         log('respond to challenge: resp.body:')
@@ -612,12 +611,21 @@ ACME._getCertificate = function (me, options) {
         })
 
         return ACME._finalizeOrder(me, options, validatedDomains)
-      }).then(function () {
-        log('acme-v2: order was finalized')
+      }).then(function (order) {
+        log('order was finalized')
         return me._request({ method: 'GET', url: me._certificate, json: true }).then(function (resp) {
-          log('acme-v2: csr submitted and cert received:')
-          log(resp.body)
-          return resp.body
+          log('csr submitted and cert received:')
+          let [cert, ca] = resp.body.split('\n\n')
+          let res = {
+            expires: order.expires,
+            identifiers: order.identifiers,
+            authorizations: order.authorizations,
+            cert,
+            ca,
+            chain: cert + '\n\n' + ca
+          }
+          log(res)
+          return res
         })
       })
     })
