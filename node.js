@@ -15,6 +15,7 @@ ACME.challengePrefixes = {
   'http-01': '/.well-known/acme-challenge',
   'dns-01': '_acme-challenge'
 }
+
 ACME.challengeTests = {
   'http-01': function (me, auth) {
     var url = 'http://' + auth.hostname + ACME.challengePrefixes['http-01'] + '/' + auth.token
@@ -349,15 +350,24 @@ ACME._postChallenge = function (me, options, identifier, ch) {
           return resp.body
         }
 
+        let err
+        let ecode
+
         if (!resp.body.status) {
-          console.error('(E_STATE_EMPTY) empty challenge state:')
+          ecode = 'E_STATE_EMPTY'
+          err = 'empty challenge state'
         } else if (resp.body.status === 'invalid') {
-          console.error('(E_STATE_INVALID) invalid challenge state:')
+          ecode = 'E_STATE_INVALID'
+          err = 'invalid challenge state'
         } else {
-          console.error('(E_STATE_UKN) unkown challenge state:')
+          ecode = 'E_STATE_UKN'
+          err = 'unkown challenge state'
         }
 
-        return Promise.reject(new Error('challenge state error'))
+        let e = new Error('Challenge state error: ' + err)
+        e.code = ecode
+
+        return Promise.reject(e)
       })
     }
 
