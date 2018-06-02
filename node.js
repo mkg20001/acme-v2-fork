@@ -6,7 +6,10 @@
 'use strict'
 /* globals Promise */
 
-var ACME = module.exports.ACME = {}
+const ACME = module.exports.ACME = {}
+
+const debug = require('debug')
+const log = debug('acme-v2')
 
 ACME.challengePrefixes = {
   'http-01': '/.well-known/acme-challenge',
@@ -23,9 +26,9 @@ ACME.challengeTests = {
       }
 
       err = new Error(
-        'Error: Failed HTTP-01 Dry Run.\n'
-      + "curl '" + url + "' does not return '" + auth.keyAuthorization + "'\n"
-      + 'See https://git.coolaj86.com/coolaj86/acme-v2.js/issues/4'
+        'Error: Failed HTTP-01 Dry Run.\n' +
+        "curl '" + url + "' does not return '" + auth.keyAuthorization + "'\n" +
+        'See https://git.coolaj86.com/coolaj86/acme-v2.js/issues/4'
       )
       err.code = 'E_FAIL_DRY_CHALLENGE'
       return Promise.reject(err)
@@ -46,9 +49,9 @@ ACME.challengeTests = {
       }
 
       err = new Error(
-        'Error: Failed DNS-01 Dry Run.\n'
-      + "dig TXT '" + hostname + "' does not return '" + auth.dnsAuthorization + "'\n"
-      + 'See https://git.coolaj86.com/coolaj86/acme-v2.js/issues/4'
+        'Error: Failed DNS-01 Dry Run.\n' +
+        "dig TXT '" + hostname + "' does not return '" + auth.dnsAuthorization + "'\n" +
+        'See https://git.coolaj86.com/coolaj86/acme-v2.js/issues/4'
       )
       err.code = 'E_FAIL_DRY_CHALLENGE'
       return Promise.reject(err)
@@ -133,25 +136,27 @@ ACME._registerAccount = function (me, options) {
         }
         if (options.externalAccount) {
           body.externalAccountBinding = me.RSA.signJws(
-            options.externalAccount.secret
-          , undefined
-          , { alg: 'HS256',
-            kid: options.externalAccount.id,
-            url: me._directoryUrls.newAccount
-          }
-          , new Buffer(JSON.stringify(jwk))
+            options.externalAccount.secret,
+            undefined,
+            {
+              alg: 'HS256',
+              kid: options.externalAccount.id,
+              url: me._directoryUrls.newAccount
+            },
+            new Buffer(JSON.stringify(jwk))
           )
         }
         var payload = JSON.stringify(body)
         var jws = me.RSA.signJws(
-          options.accountKeypair
-        , undefined
-        , { nonce: me._nonce,
-          alg: 'RS256',
-          url: me._directoryUrls.newAccount,
-          jwk: jwk
-        }
-        , new Buffer(payload)
+          options.accountKeypair,
+          undefined,
+          {
+            nonce: me._nonce,
+            alg: 'RS256',
+            url: me._directoryUrls.newAccount,
+            jwk: jwk
+          },
+          new Buffer(payload)
         )
 
         delete jws.header
@@ -204,8 +209,8 @@ ACME._registerAccount = function (me, options) {
           reject(err)
         })
       } else {
-        reject(new Error('agreeToTerms has incorrect function signature.'
-          + ' Should be fn(tos) { return Promise<tos>; }'))
+        reject(new Error('agreeToTerms has incorrect function signature.' +
+          ' Should be fn(tos) { return Promise<tos>; }'))
       }
     })
   })
@@ -282,10 +287,10 @@ ACME._postChallenge = function (me, options, identifier, ch) {
      */
     function deactivate () {
       var jws = me.RSA.signJws(
-        options.accountKeypair
-      , undefined
-      , { nonce: me._nonce, alg: 'RS256', url: ch.url, kid: me._kid }
-      , new Buffer(JSON.stringify({ 'status': 'deactivated' }))
+        options.accountKeypair,
+        undefined,
+        { nonce: me._nonce, alg: 'RS256', url: ch.url, kid: me._kid },
+        new Buffer(JSON.stringify({ 'status': 'deactivated' }))
       )
       me._nonce = null
       return me._request({
@@ -358,10 +363,10 @@ ACME._postChallenge = function (me, options, identifier, ch) {
 
     function respondToChallenge () {
       var jws = me.RSA.signJws(
-        options.accountKeypair
-      , undefined
-      , { nonce: me._nonce, alg: 'RS256', url: ch.url, kid: me._kid }
-      , new Buffer(JSON.stringify({ }))
+        options.accountKeypair,
+        undefined,
+        { nonce: me._nonce, alg: 'RS256', url: ch.url, kid: me._kid },
+        new Buffer(JSON.stringify({ }))
       )
       me._nonce = null
       return me._request({
@@ -423,10 +428,10 @@ ACME._finalizeOrder = function (me, options, validatedDomains) {
 
   function pollCert () {
     var jws = me.RSA.signJws(
-      options.accountKeypair
-    , undefined
-    , { nonce: me._nonce, alg: 'RS256', url: me._finalize, kid: me._kid }
-    , new Buffer(payload)
+      options.accountKeypair,
+      undefined,
+      { nonce: me._nonce, alg: 'RS256', url: me._finalize, kid: me._kid },
+      new Buffer(payload)
     )
 
     if (me.debug) console.debug('finalize:', me._finalize)
@@ -459,36 +464,36 @@ ACME._finalizeOrder = function (me, options, validatedDomains) {
 
       if (resp.body.status === 'pending') {
         return Promise.reject(new Error(
-          "Did not finalize order: status 'pending'."
-        + ' Best guess: You have not accepted at least one challenge for each domain.' + '\n\n'
-        + JSON.stringify(resp.body, null, 2)
+          "Did not finalize order: status 'pending'." +
+          ' Best guess: You have not accepted at least one challenge for each domain.' + '\n\n' +
+          JSON.stringify(resp.body, null, 2)
         ))
       }
 
       if (resp.body.status === 'invalid') {
         return Promise.reject(new Error(
-          "Did not finalize order: status 'invalid'."
-        + ' Best guess: One or more of the domain challenges could not be verified'
-        + ' (or the order was canceled).' + '\n\n'
-        + JSON.stringify(resp.body, null, 2)
+          "Did not finalize order: status 'invalid'." +
+          ' Best guess: One or more of the domain challenges could not be verified' +
+          ' (or the order was canceled).' + '\n\n' +
+          JSON.stringify(resp.body, null, 2)
         ))
       }
 
       if (resp.body.status === 'ready') {
         return Promise.reject(new Error(
-          "Did not finalize order: status 'ready'."
-        + " Hmmm... this state shouldn't be possible here. That was the last state."
-        + " This one should at least be 'processing'." + '\n\n'
-        + JSON.stringify(resp.body, null, 2) + '\n\n'
-        + 'Please open an issue at https://git.coolaj86.com/coolaj86/acme-v2.js'
+          "Did not finalize order: status 'ready'." +
+          " Hmmm... this state shouldn't be possible here. That was the last state." +
+          " This one should at least be 'processing'." + '\n\n' +
+          JSON.stringify(resp.body, null, 2) + '\n\n' +
+          'Please open an issue at https://git.coolaj86.com/coolaj86/acme-v2.js'
         ))
       }
 
       return Promise.reject(new Error(
-        "Didn't finalize order: Unhandled status '" + resp.body.status + "'."
-      + ' This is not one of the known statuses...\n\n'
-      + JSON.stringify(resp.body, null, 2) + '\n\n'
-      + 'Please open an issue at https://git.coolaj86.com/coolaj86/acme-v2.js'
+        "Didn't finalize order: Unhandled status '" + resp.body.status + "'." +
+        ' This is not one of the known statuses...\n\n' +
+        JSON.stringify(resp.body, null, 2) + '\n\n' +
+        'Please open an issue at https://git.coolaj86.com/coolaj86/acme-v2.js'
       ))
     })
   }
@@ -528,10 +533,10 @@ ACME._getCertificate = function (me, options) {
 
     var payload = JSON.stringify(body)
     var jws = me.RSA.signJws(
-      options.accountKeypair
-    , undefined
-    , { nonce: me._nonce, alg: 'RS256', url: me._directoryUrls.newOrder, kid: me._kid }
-    , new Buffer(payload)
+      options.accountKeypair,
+      undefined,
+      { nonce: me._nonce, alg: 'RS256', url: me._directoryUrls.newOrder, kid: me._kid },
+      new Buffer(payload)
     )
 
     if (me.debug) console.debug('\n[DEBUG] newOrder\n')
