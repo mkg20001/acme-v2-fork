@@ -20,13 +20,11 @@ ACME.challengeTests = {
   'http-01': function (me, auth) {
     var url = 'http://' + auth.hostname + ACME.challengePrefixes['http-01'] + '/' + auth.token
     return me._request({ url: url }).then(function (resp) {
-      var err
-
       if (auth.keyAuthorization === resp.body.toString('utf8').trim()) {
         return true
       }
 
-      err = new Error(
+      let err = new Error(
         'Error: Failed HTTP-01 Dry Run.\n' +
         'curl ' + JSON.stringify(url) + ' does not return ' + JSON.stringify(auth.keyAuthorization) + '\n' +
         'See https://git.coolaj86.com/coolaj86/acme-v2.js/issues/4'
@@ -41,15 +39,13 @@ ACME.challengeTests = {
       type: 'TXT',
       name: hostname
     }).then(function (ans) {
-      var err
-
       if (ans.answer.some(function (txt) {
         return auth.dnsAuthorization === txt.data[0]
       })) {
         return true
       }
 
-      err = new Error(
+      let err = new Error(
         'Error: Failed DNS-01 Dry Run.\n' +
         'dig +short ' + JSON.stringify(hostname) + ' does not return ' + JSON.stringify(auth.dnsAuthorization) + '\n' +
         'See https://git.coolaj86.com/coolaj86/acme-v2.js/issues/4'
@@ -115,12 +111,10 @@ ACME._registerAccount = function (me, options) {
   return ACME._getNonce(me).then(function () {
     return new Promise(function (resolve, reject) {
       function agree (tosUrl) {
-        var err
         if (me._tos !== tosUrl) {
-          err = new Error("You must agree to the ToS at '" + me._tos + "'")
+          let err = new Error('You must agree to the ToS at ' + JSON.stringify(me._tos))
           err.code = 'E_AGREE_TOS'
-          reject(err)
-          return
+          return reject(err)
         }
 
         var jwk = me.RSA.exportPublicJwk(options.accountKeypair)
