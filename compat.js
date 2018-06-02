@@ -31,12 +31,12 @@ function create (deps) {
     options.agreeToTerms = options.agreeToTerms || function (tos) {
       return Promise.resolve(tos)
     }
-    acme2.certificates.create(options).then(function (chainPem) {
+    acme2.certificates.create(options).then(function (res) {
       var privkeyPem = acme2.RSA.exportPrivatePem(options.domainKeypair)
       resolveFn(cb)({
-        cert: chainPem.split(/[\r\n]{2,}/g)[0] + '\r\n',
+        cert: res.cert,
         privkey: privkeyPem,
-        chain: chainPem.split(/[\r\n]{2,}/g)[1] + '\r\n'
+        chain: res.chain
       })
     }, rejectFn(cb))
   }
