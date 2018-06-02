@@ -1,6 +1,5 @@
 'use strict'
 
-var RSA = require('rsa-compat').RSA
 var readline = require('readline')
 var rl = readline.createInterface({
   input: process.stdin,
@@ -42,7 +41,6 @@ function getEmail (web, chType) {
 }
 
 function getApiStyle (web, chType, email) {
-  var defaultStyle = 'compat'
   rl.question('What API style would you like to test? v1-compat or promise? [v1-compat] ', function (apiStyle) {
     apiStyle = (apiStyle || '').trim()
     if (!apiStyle) { apiStyle = 'v1-compat' }
