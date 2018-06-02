@@ -109,7 +109,7 @@ ACME._getNonce = function (me) {
  }
 */
 ACME._registerAccount = function (me, options) {
-  if (me.debug) console.debug('[acme-v2] accounts.create')
+  log('accounts.create')
 
   return ACME._getNonce(me).then(function () {
     return new Promise(function (resolve, reject) {
@@ -160,8 +160,8 @@ ACME._registerAccount = function (me, options) {
         )
 
         delete jws.header
-        if (me.debug) console.debug('[acme-v2] accounts.create JSON body:')
-        if (me.debug) console.debug(jws)
+        log('accounts.create JSON body:')
+        log(jws)
         me._nonce = null
         return me._request({
           method: 'POST',
@@ -175,9 +175,9 @@ ACME._registerAccount = function (me, options) {
           var location = resp.toJSON().headers.location
           // the account id url
           me._kid = location
-          if (me.debug) console.debug('[DEBUG] new account location:')
-          if (me.debug) console.debug(location)
-          if (me.debug) console.debug(resp.toJSON())
+          log('new account location:')
+          log(location)
+          log(resp.toJSON())
 
           /*
           {
@@ -198,7 +198,7 @@ ACME._registerAccount = function (me, options) {
         }).then(resolve, reject)
       }
 
-      if (me.debug) console.debug('[acme-v2] agreeToTerms')
+      log('agreeToTerms')
       if (options.agreeToTerms.length === 1) {
         // newer promise API
         return options.agreeToTerms(me._tos).then(agree, reject)
@@ -236,7 +236,7 @@ ACME._registerAccount = function (me, options) {
  }
 */
 ACME._getChallenges = function (me, options, auth) {
-  if (me.debug) console.debug('\n[DEBUG] getChallenges\n')
+  log('getChallenges')
   return me._request({ method: 'GET', url: auth, json: true }).then(function (resp) {
     return resp.body
   })
@@ -299,29 +299,29 @@ ACME._postChallenge = function (me, options, identifier, ch) {
         headers: { 'Content-Type': 'application/jose+json' },
         json: jws
       }).then(function (resp) {
-        if (me.debug) console.debug('[acme-v2.js] deactivate:')
-        if (me.debug) console.debug(resp.headers)
-        if (me.debug) console.debug(resp.body)
-        if (me.debug) console.debug()
+        log('deactivate:')
+        log(resp.headers)
+        log(resp.body)
+        log()
 
         me._nonce = resp.toJSON().headers['replay-nonce']
-        if (me.debug) console.debug('deactivate challenge: resp.body:')
-        if (me.debug) console.debug(resp.body)
+        log('deactivate challenge: resp.body:')
+        log(resp.body)
         return ACME._wait(10 * 1000)
       })
     }
 
     function pollStatus () {
       if (count >= 5) {
-        return Promise.reject(new Error('[acme-v2] stuck in bad pending/processing state'))
+        return Promise.reject(new Error('stuck in bad pending/processing state'))
       }
 
       count += 1
 
-      if (me.debug) console.debug('\n[DEBUG] statusChallenge\n')
+      log('statusChallenge')
       return me._request({ method: 'GET', url: ch.url, json: true }).then(function (resp) {
         if (resp.body.status === 'processing') {
-          if (me.debug) console.debug('poll: again')
+          log('poll: again')
           return ACME._wait(1 * 1000).then(pollStatus)
         }
 
@@ -330,12 +330,12 @@ ACME._postChallenge = function (me, options, identifier, ch) {
           if (count >= 4) {
             return ACME._wait(1 * 1000).then(deactivate).then(testChallenge)
           }
-          if (me.debug) console.debug('poll: again')
+          log('poll: again')
           return ACME._wait(1 * 1000).then(testChallenge)
         }
 
         if (resp.body.status === 'valid') {
-          if (me.debug) console.debug('poll: valid')
+          log('poll: valid')
 
           try {
             if (options.removeChallenge.length === 1) {
@@ -350,14 +350,14 @@ ACME._postChallenge = function (me, options, identifier, ch) {
         }
 
         if (!resp.body.status) {
-          console.error('[acme-v2] (E_STATE_EMPTY) empty challenge state:')
+          console.error('(E_STATE_EMPTY) empty challenge state:')
         } else if (resp.body.status === 'invalid') {
-          console.error('[acme-v2] (E_STATE_INVALID) invalid challenge state:')
+          console.error('(E_STATE_INVALID) invalid challenge state:')
         } else {
-          console.error('[acme-v2] (E_STATE_UKN) unkown challenge state:')
+          console.error('(E_STATE_UKN) unkown challenge state:')
         }
 
-        return Promise.reject(new Error('[acme-v2] challenge state error'))
+        return Promise.reject(new Error('challenge state error'))
       })
     }
 
@@ -375,14 +375,14 @@ ACME._postChallenge = function (me, options, identifier, ch) {
         headers: { 'Content-Type': 'application/jose+json' },
         json: jws
       }).then(function (resp) {
-        if (me.debug) console.debug('[acme-v2.js] challenge accepted!')
-        if (me.debug) console.debug(resp.headers)
-        if (me.debug) console.debug(resp.body)
-        if (me.debug) console.debug()
+        log('challenge accepted!')
+        log(resp.headers)
+        log(resp.body)
+        log()
 
         me._nonce = resp.toJSON().headers['replay-nonce']
-        if (me.debug) console.debug('respond to challenge: resp.body:')
-        if (me.debug) console.debug(resp.body)
+        log('respond to challenge: resp.body:')
+        log(resp.body)
         return ACME._wait(1 * 1000).then(pollStatus).then(resolve, reject)
       })
     }
@@ -397,8 +397,8 @@ ACME._postChallenge = function (me, options, identifier, ch) {
       // http-01: GET https://example.org/.well-known/acme-challenge/{{token}} => {{keyAuth}}
       // dns-01: TXT _acme-challenge.example.org. => "{{urlSafeBase64(sha256(keyAuth))}}"
 
-      if (me.debug) { console.debug('\n[DEBUG] postChallenge\n') }
-      // if (me.debug) console.debug('\n[DEBUG] stop to fix things\n'); return;
+      log('postChallenge')
+      // log('\nstop to fix things\n'); return;
 
       return ACME._wait(1 * 1000).then(function () {
         if (!me.skipChallengeTest) {
@@ -421,7 +421,7 @@ ACME._postChallenge = function (me, options, identifier, ch) {
   })
 }
 ACME._finalizeOrder = function (me, options, validatedDomains) {
-  if (me.debug) console.debug('finalizeOrder:')
+  log('finalizeOrder:')
   var csr = me.RSA.generateCsrWeb64(options.domainKeypair, validatedDomains)
   var body = { csr: csr }
   var payload = JSON.stringify(body)
@@ -434,7 +434,7 @@ ACME._finalizeOrder = function (me, options, validatedDomains) {
       new Buffer(payload)
     )
 
-    if (me.debug) console.debug('finalize:', me._finalize)
+    log('finalize:', me._finalize)
     me._nonce = null
     return me._request({
       method: 'POST',
@@ -446,8 +446,8 @@ ACME._finalizeOrder = function (me, options, validatedDomains) {
       // Possible values are: "pending" => ("invalid" || "ready") => "processing" => "valid"
       me._nonce = resp.toJSON().headers['replay-nonce']
 
-      if (me.debug) console.debug('order finalized: resp.body:')
-      if (me.debug) console.debug(resp.body)
+      log('order finalized: resp.body:')
+      log(resp.body)
 
       if (resp.body.status === 'valid') {
         me._expires = resp.body.expires
@@ -460,7 +460,7 @@ ACME._finalizeOrder = function (me, options, validatedDomains) {
         return ACME._wait().then(pollCert)
       }
 
-      if (me.debug) console.debug('Error: bad status:\n' + JSON.stringify(resp.body, null, 2))
+      log('Error: bad status:\n' + JSON.stringify(resp.body, null, 2))
 
       if (resp.body.status === 'pending') {
         return Promise.reject(new Error(
@@ -501,7 +501,7 @@ ACME._finalizeOrder = function (me, options, validatedDomains) {
   return pollCert()
 }
 ACME._getCertificate = function (me, options) {
-  if (me.debug) console.debug('[acme-v2] DEBUG get cert 1')
+  log('DEBUG get cert 1')
 
   if (!options.challengeTypes) {
     if (!options.challengeType) {
@@ -521,7 +521,7 @@ ACME._getCertificate = function (me, options) {
     }
   }
 
-  if (me.debug) console.debug('[acme-v2] certificates.create')
+  log('certificates.create')
   return ACME._getNonce(me).then(function () {
     var body = {
       identifiers: options.domains.map(function (hostname) {
@@ -539,7 +539,7 @@ ACME._getCertificate = function (me, options) {
       new Buffer(payload)
     )
 
-    if (me.debug) console.debug('\n[DEBUG] newOrder\n')
+    log('newOrder')
     me._nonce = null
     return me._request({
       method: 'POST',
@@ -550,19 +550,19 @@ ACME._getCertificate = function (me, options) {
       me._nonce = resp.toJSON().headers['replay-nonce']
       var location = resp.toJSON().headers.location
       var auths
-      if (me.debug) console.debug(location) // the account id url
-      if (me.debug) console.debug(resp.toJSON())
+      log(location) // the account id url
+      log(resp.toJSON())
       me._authorizations = resp.body.authorizations
       me._order = location
       me._finalize = resp.body.finalize
-      // if (me.debug) console.debug('[DEBUG] finalize:', me._finalize); return;
+      // log('finalize:', me._finalize); return;
 
       if (!me._authorizations) {
-        console.error('[acme-v2.js] authorizations were not fetched:')
+        console.error('authorizations were not fetched:')
         console.error(resp.body)
         return Promise.reject(new Error('authorizations were not fetched'))
       }
-      if (me.debug) console.debug('47 &#&#&#&#&#&#&&##&#&#&#&#&#&#&#&')
+      log('47 &#&#&#&#&#&#&&##&#&#&#&#&#&#&#&')
 
       // return resp.body;
       auths = me._authorizations.slice(0)
@@ -596,17 +596,17 @@ ACME._getCertificate = function (me, options) {
       }
 
       return next().then(function () {
-        if (me.debug) console.debug('37 &#&#&#&#&#&#&&##&#&#&#&#&#&#&#&')
+        log('37 &#&#&#&#&#&#&&##&#&#&#&#&#&#&#&')
         var validatedDomains = body.identifiers.map(function (ident) {
           return ident.value
         })
 
         return ACME._finalizeOrder(me, options, validatedDomains)
       }).then(function () {
-        if (me.debug) console.debug('acme-v2: order was finalized')
+        log('acme-v2: order was finalized')
         return me._request({ method: 'GET', url: me._certificate, json: true }).then(function (resp) {
-          if (me.debug) console.debug('acme-v2: csr submitted and cert received:')
-          if (me.debug) console.debug(resp.body)
+          log('acme-v2: csr submitted and cert received:')
+          log(resp.body)
           return resp.body
         })
       })
