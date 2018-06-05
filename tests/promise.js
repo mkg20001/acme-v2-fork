@@ -50,7 +50,6 @@ module.exports.run = function run (directoryUrl, RSA, web, chType, email, accoun
             process.stdin.removeListener('data', onAny)
             process.stdin.setRawMode(false)
             resolve()
-            return
           }
 
           process.stdin.setRawMode(true)

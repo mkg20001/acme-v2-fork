@@ -65,8 +65,8 @@ module.exports.defaults = {
   knownEndpoints: [ 'keyChange', 'meta', 'newAccount', 'newNonce', 'newOrder', 'revokeCert' ],
   challengeTypes: [ 'http-01', 'dns-01' ],
   challengeType: 'http-01',
-//, keyType:                'rsa' // ecdsa
-//, keySize:                2048 // 256
+  //, keyType:                'rsa' // ecdsa
+  //, keySize:                2048 // 256
   rsaKeySize: 2048, // 256
   acmeChallengePrefix: '/.well-known/acme-challenge/'
 }

@@ -79,7 +79,7 @@ ACME._directory = function (me) {
   return me._request({ url: me.directoryUrl, json: true })
 }
 ACME._getNonce = function (me) {
-  if (me._nonce) { return new Promise(function (resolve) { resolve(me._nonce); return }) }
+  if (me._nonce) { return new Promise(function (resolve) { resolve(me._nonce) }) }
   return me._request({ method: 'HEAD', url: me._directoryUrls.newNonce }).then(function (resp) {
     me._nonce = resp.toJSON().headers['replay-nonce']
     return me._nonce
