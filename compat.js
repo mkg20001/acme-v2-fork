@@ -36,7 +36,7 @@ function create (deps) {
       resolveFn(cb)({
         cert: res.cert,
         privkey: privkeyPem,
-        chain: res.chain
+        chain: res.ca
       })
     }, rejectFn(cb))
   }

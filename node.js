@@ -75,13 +75,11 @@ ACME._getUserAgentString = function (deps) {
 
   return userAgent.join(' ').trim()
 }
-ACME._directory = function (me) {
-  return me._request({ url: me.directoryUrl, json: true })
-}
+ACME._directory = (me) => me._fetch({ url: me.directoryUrl, json: true }).then(res => res.json())
 ACME._getNonce = function (me) {
   if (me._nonce) { return new Promise(function (resolve) { resolve(me._nonce) }) }
-  return me._request({ method: 'HEAD', url: me._directoryUrls.newNonce }).then(function (resp) {
-    me._nonce = resp.toJSON().headers['replay-nonce']
+  return me._fetch({ method: 'HEAD', url: me._directoryUrls.newNonce }).then(function (resp) {
+    me._nonce = resp.headers.get('replay-nonce')
     return me._nonce
   })
 }
@@ -158,21 +156,20 @@ ACME._registerAccount = function (me, options) {
         log('accounts.create JSON body:')
         log(jws)
         me._nonce = null
-        return me._request({
+        return me._fetch({
           method: 'POST',
           url: me._directoryUrls.newAccount,
           headers: { 'Content-Type': 'application/jose+json' },
-          json: jws
+          body: JSON.stringify(jws)
         }).then(function (resp) {
-          var account = resp.body
-
-          me._nonce = resp.toJSON().headers['replay-nonce']
-          var location = resp.toJSON().headers.location
+          if (!resp.ok) return Promise.reject(new Error('Server error: ' + resp.statusText))
+          me._nonce = resp.headers.get('replay-nonce')
+          var location = resp.headers.get('location')
           // the account id url
           me._kid = location
           log('new account location:')
           log(location)
-          log(resp.toJSON())
+          log(resp)
 
           /*
           {
@@ -187,9 +184,11 @@ ACME._registerAccount = function (me, options) {
             status: 'valid'
           }
           */
-          if (!account) { account = { _emptyResponse: true, key: {} } }
-          account.key.kid = me._kid
-          return account
+          return resp.json().then(account => {
+            if (!account) { account = { _emptyResponse: true, key: {} } }
+            account.key.kid = me._kid
+            return account
+          })
         }).then(resolve, reject)
       }
 
@@ -544,31 +543,33 @@ ACME._getCertificate = function (me, options) {
 
     log('newOrder')
     me._nonce = null
-    return me._request({
+    return me._fetch({
       method: 'POST',
       url: me._directoryUrls.newOrder,
       headers: { 'Content-Type': 'application/jose+json' },
-      json: jws
+      body: JSON.stringify(jws)
     }).then(function (resp) {
-      me._nonce = resp.toJSON().headers['replay-nonce']
-      var location = resp.toJSON().headers.location
+      me._nonce = resp.headers.get('replay-nonce')
+      var location = resp.headers.get('location')
       var auths
       log(location) // the account id url
-      log(resp.toJSON())
-      me._authorizations = resp.body.authorizations
-      me._order = location
-      me._finalize = resp.body.finalize
-      // log('finalize:', me._finalize); return;
+      log(resp)
+      return resp.json().then(authz => {
+        me._authorizations = authz.authorizations
+        me._order = location
+        me._finalize = authz.finalize
+        // log('finalize:', me._finalize); return;
 
-      if (!me._authorizations) {
-        console.error('authorizations were not fetched:')
-        console.error(resp.body)
-        return Promise.reject(new Error('authorizations were not fetched'))
-      }
-      log('47 &#&#&#&#&#&#&&##&#&#&#&#&#&#&#&')
+        if (!me._authorizations) {
+          console.error('authorizations were not fetched:')
+          console.error(resp.body)
+          return Promise.reject(new Error('authorizations were not fetched'))
+        }
+        log('47 &#&#&#&#&#&#&&##&#&#&#&#&#&#&#&')
 
-      // return resp.body;
-      auths = me._authorizations.slice(0)
+        // return resp.body;
+        auths = me._authorizations.slice(0)
+      })
 
       function next () {
         var authUrl = auths.shift()
@@ -631,7 +632,7 @@ ACME.create = function create (me) {
   // me.debug = true;
   me.challengePrefixes = ACME.challengePrefixes
   me.RSA = me.RSA || require('rsa-compat').RSA
-  me.request = me.request || require('request')
+  me.fetch = me.fetch || require('node-fetch')
   me._dig = function (query) {
     // TODO use digd.js
     return new Promise(function (resolve, reject) {
@@ -658,24 +659,18 @@ ACME.create = function create (me) {
     me.userAgent = ACME._getUserAgentString(me)
   }
 
-  function getRequest (opts) {
-    if (!opts) { opts = {} }
-
-    return me.request.defaults({
-      headers: {
-        'User-Agent': opts.userAgent || me.userAgent || me.getUserAgentString(me)
-      }
-    })
-  }
-
-  if (typeof me._request !== 'function') {
-    me._request = me.promisify(getRequest({}))
+  if (typeof me._fetch !== 'function') {
+    me._fetch = (opts) => {
+      if (!opts.headers) opts.headers = {}
+      opts.headers['User-Agent'] = opts.userAgent || me.userAgent || me.getUserAgentString(me)
+      return me.fetch(opts.url, opts)
+    }
   }
 
   me.init = function (_directoryUrl) {
     me.directoryUrl = me.directoryUrl || _directoryUrl
     return ACME._directory(me).then(function (resp) {
-      me._directoryUrls = resp.body
+      me._directoryUrls = resp
       me._tos = me._directoryUrls.meta.termsOfService
       return me._directoryUrls
     })
